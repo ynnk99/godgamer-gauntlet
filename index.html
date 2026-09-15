@@ -2,11 +2,44 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>PietSmiet God Gamer Gauntlet</title>
+<title>Game Challenges Overlay — Leiter, Multi-Design</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Sora:wght@600;700;800&family=Manrope:wght@400;500;600;700&family=Big+Shoulders+Display:wght@600;800&display=swap" rel="stylesheet">
 <style>
+
+  /* ============================================================
+     KONFIGURATION — hier anpassen
+     ============================================================
+     1. Sheet freigeben: "Teilen" -> "Jeder mit dem Link" -> Betrachter
+     2. SHEET_ID aus der URL: .../d/DIESE_ID/edit
+     3. Tabellenblatt-Name unten eintragen
+
+     SPALTEN (Zeile 1 = Kopfzeile, wird ignoriert):
+       A: Spiel
+       B: Bedingung
+       C: Erledigt   (Checkbox — pro Spiel, wird fuer den Erfolgsscreen
+                       ausgewertet)
+       D: Aktuell    (Checkbox — genau EIN Haekchen = aktuelles Spiel.
+                       Die LEITER-POSITION ergibt sich aus der
+                       Sheet-Reihenfolge relativ zu dieser Zeile:
+                       alles davor = "geschafft", alles danach =
+                       "gesperrt". Faellt man zurueck, Haken in D
+                       einfach eine Zeile nach oben verschieben.)
+
+     EINZELZELLEN (separat von der Spieltabelle):
+       E1: Timer-Schalter    — Haken rein = 12h-Countdown laeuft
+       G1: Design "Klemmbrett"
+       G2: Design "Terminal"
+       G3: Design "Timeline"
+       -> nur EINE von G1/G2/G3 sollte angehakt sein; Prioritaet bei
+          mehreren: G1 vor G2 vor G3. Keine angehakt -> Klemmbrett.
+
+     ERFOLGSSCREEN:
+       Sobald ALLE Zeilen in Spalte C angehakt sind, stoppt der Timer
+       automatisch und statt der Leiter erscheint ein Erfolgsscreen
+       mit der finalen Zeit.
+     ============================================================ */
 
   :root{
     --font-hand: "Caveat", cursive;
@@ -20,7 +53,23 @@
   * { box-sizing: border-box; }
   html, body { margin:0; padding:0; background: transparent; overflow: hidden; }
 
-  .panel-variant { display: none; }
+  .panel-variant { display: none; opacity: 0; transition: opacity 260ms ease; }
+
+  /* ---------- Fokus-Karte: Flash bei Spielwechsel (fuer alle Designs) ---------- */
+  .focus-card.flash { animation: focusCardFlash 650ms ease; }
+  @keyframes focusCardFlash {
+    0%   { filter: brightness(1); }
+    35%  { filter: brightness(1.45); }
+    100% { filter: brightness(1); }
+  }
+
+  /* ---------- Erfolgsscreen: Einblendung ---------- */
+  #success-screen { opacity: 0; transition: opacity 260ms ease; }
+  #success-screen.anim-in { animation: successIn 420ms cubic-bezier(.2,.8,.2,1) forwards; }
+  @keyframes successIn {
+    from { opacity: 0; transform: scale(0.92); }
+    to   { opacity: 1; transform: scale(1); }
+  }
 
   /* ================= KLEMMBRETT (Leiter) ================= */
 
@@ -74,6 +123,10 @@
   #panel-klemmbrett .check-icon { flex:0 0 auto; width:13px; height:13px; margin-top:2px; border-radius:2px; background: var(--done); display:flex; align-items:center; justify-content:center; }
   #panel-klemmbrett .done-list .game { font-weight:600; font-size:12.5px; color: var(--ink-dim); text-decoration: line-through; text-decoration-color: rgba(138,132,120,0.5); }
   #panel-klemmbrett .done-list .cond { font-weight:500; font-size:10.5px; color: var(--ink-faint); margin-top:1px; }
+  #panel-klemmbrett .done-list li.pop { animation: popFlashKB 700ms ease; }
+  @keyframes popFlashKB { 0% { background: rgba(63,125,78,0.28); } 100% { background: transparent; } }
+  #panel-klemmbrett .done-list li.pop .check-icon { animation: iconPopKB 480ms ease; }
+  @keyframes iconPopKB { 0% { transform: scale(0.3); opacity: 0; } 60% { transform: scale(1.3); } 100% { transform: scale(1); opacity: 1; } }
 
   /* ================= TERMINAL (Leiter) ================= */
 
@@ -130,6 +183,8 @@
   #panel-terminal .done-list .game::before { content: "[x] "; color: var(--done); }
   #panel-terminal .done-list .game { color: var(--ink-dim); text-decoration: line-through; }
   #panel-terminal .done-list .cond { color: var(--ink-faint); margin-left: 20px; font-size: 10.5px; text-decoration: line-through; }
+  #panel-terminal .done-list li.pop { animation: popFlashTerm 700ms ease; }
+  @keyframes popFlashTerm { 0% { background: rgba(107,255,158,0.20); } 100% { background: transparent; } }
 
   /* ================= TIMELINE (Leiter) ================= */
 
@@ -185,6 +240,10 @@
   #panel-timeline .done-list .dot { flex:0 0 auto; width:8px; height:8px; margin-top:4px; border-radius:50%; background: var(--done); }
   #panel-timeline .done-list .game { font-weight:600; font-size:12.5px; color: var(--ink-dim); text-decoration: line-through; text-decoration-color: rgba(138,136,160,0.4); }
   #panel-timeline .done-list .cond { font-weight:500; font-size:10.5px; color: var(--ink-faint); margin-top:1px; }
+  #panel-timeline .done-list li.pop { animation: popFlashTL 700ms ease; }
+  @keyframes popFlashTL { 0% { background: rgba(95,211,160,0.18); } 100% { background: transparent; } }
+  #panel-timeline .done-list li.pop .dot { animation: iconPopTL 480ms ease; }
+  @keyframes iconPopTL { 0% { transform: scale(0.3); opacity: 0; } 60% { transform: scale(1.4); } 100% { transform: scale(1); opacity: 1; } }
 
   /* ================= ERFOLGSSCREEN (fuer alle Designs gleich) ================= */
 
@@ -217,12 +276,12 @@
 
   <div id="panel-klemmbrett" class="panel-variant">
     <div class="head">
-      <p class="title">God Gamer Gauntlet</p>
+      <p class="title">Challenge-Leiter</p>
       <div class="fraction"><b class="frac-done">0</b>&nbsp;/&nbsp;<span class="frac-total">0</span></div>
     </div>
     <div class="bar-track"><div class="bar-fill"></div></div>
     <div class="timer-box">
-      <div class="timer-left"><div class="timer-dot"></div><div class="timer-label">Verbleibende Zeit</div></div>
+      <div class="timer-left"><div class="timer-dot"></div><div class="timer-label">Zeit übrig</div></div>
       <div class="timer-value">12:00:00</div>
     </div>
     <ul class="locked-list"></ul>
@@ -236,12 +295,12 @@
 
   <div id="panel-terminal" class="panel-variant">
     <div class="head">
-      <p class="title">God Gamer Gauntlet</p>
+      <p class="title">challenge_log</p>
       <div class="fraction"><b class="frac-done">0</b>/<span class="frac-total">0</span></div>
     </div>
     <div class="bar-track"><div class="bar-fill"></div></div>
     <div class="timer-box">
-      <div class="timer-left"><div class="timer-dot"></div><div class="timer-label">Verbleibende Zeit</div></div>
+      <div class="timer-left"><div class="timer-dot"></div><div class="timer-label">time_left</div></div>
       <div class="timer-value">12:00:00</div>
     </div>
     <ul class="locked-list"></ul>
@@ -255,12 +314,12 @@
 
   <div id="panel-timeline" class="panel-variant">
     <div class="head">
-      <p class="title">God Gamer Gauntlet</p>
+      <p class="title">Fortschritt</p>
       <div class="fraction"><b class="frac-done">0</b>&nbsp;/&nbsp;<span class="frac-total">0</span></div>
     </div>
     <div class="bar-track"><div class="bar-fill"></div></div>
     <div class="timer-box">
-      <div class="timer-left"><div class="timer-dot"></div><div class="timer-label">Verbleibende Zeit</div></div>
+      <div class="timer-left"><div class="timer-dot"></div><div class="timer-label">Zeit übrig</div></div>
       <div class="timer-value">12:00:00</div>
     </div>
     <ul class="locked-list"></ul>
@@ -276,8 +335,8 @@
     <div id="success-icon">
       <svg viewBox="0 0 16 16" fill="none"><path d="M3 8.5L6.2 11.7L13 4.5" stroke="#12200f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
-    <p id="success-title">Gauntlet geschafft!</p>
-    <p id="success-sub">God Gamer Status acquired</p>
+    <p id="success-title">Alle Challenges geschafft!</p>
+    <p id="success-sub">Jedes Spiel auf der Liste ist abgehakt.</p>
     <div id="success-time-label">Finale Zeit</div>
     <div id="success-time">00:00:00</div>
     <div id="success-chips"></div>
@@ -287,9 +346,9 @@
 
 <script>
   // =========== CONFIG — hier eure Werte eintragen ===========
-  const SHEET_ID   = "11V0nzPSyr-tY5PzNV_eZW5SCOqKHEKIHbIQ5Sy6Ph6o";
+  const SHEET_ID   = "DEINE_SHEET_ID_HIER";
   const SHEET_NAME = "Tabellenblatt1";
-  const REFRESH_MS = 3000;          // Spieltabelle (A:D)
+  const REFRESH_MS = 10000;          // Spieltabelle (A:D)
   const CONTROL_POLL_MS = 4000;      // Timer- und Design-Schalter (E1, G1:G3)
   const TIMER_DURATION_SECONDS = 12 * 60 * 60;
   // ============================================================
@@ -336,10 +395,18 @@
     const doneList = entries.slice(0, activeIndex).reverse();
     const lockedList = entries.slice(activeIndex + 1).reverse();
 
-    focusCardEl.classList.remove("all-done");
+    focusCardEl.classList.remove("all-done", "flash");
     focusLabelEl.textContent = opts.currentLabel;
     focusGameEl.textContent = active ? active.game : "—";
     focusCondEl.textContent = active ? active.cond : "";
+
+    // (3) Fokus-Karte kurz aufleuchten lassen, wenn sich das aktuelle Spiel geaendert hat
+    const activeKey = active ? entryKey(active) : null;
+    if (activeKey && prevActiveKey !== null && activeKey !== prevActiveKey) {
+      void focusCardEl.offsetWidth; // Reflow erzwingen, damit die Animation neu startet
+      focusCardEl.classList.add("flash");
+    }
+    if (activeKey) prevActiveKey = activeKey;
 
     lockedListEl.innerHTML = "";
     lockedList.forEach(e => {
@@ -352,6 +419,8 @@
     doneList.forEach(e => {
       const li = document.createElement("li");
       li.innerHTML = opts.doneItem(e);
+      // (2) frisch abgehakte Spiele kurz hervorheben
+      if (newlyDoneKeys.has(entryKey(e))) li.classList.add("pop");
       doneListEl.appendChild(li);
     });
 
@@ -384,13 +453,37 @@
 
   const renderers = { klemmbrett: renderKlemmbrett, terminal: renderTerminal, timeline: renderTimeline };
 
-  function showSkin(skin) {
+  const entryKey = e => e.game + "||" + e.cond;
+  let prevDoneKeys = new Set();      // fuer Pop-Animation (2)
+  let newlyDoneKeys = new Set();
+  let prevActiveKey = null;          // fuer Fokus-Flash (3)
+  let panelVisible = false;          // ob gerade ueberhaupt ein Design-Panel sichtbar ist
+
+  // Blendet ein Design-Panel weich ein; blendet ggf. das vorherige weich aus (5)
+  function fadeInPanel(skin) {
     currentSkin = skin;
     Object.keys(panels).forEach(key => {
-      panels[key].style.display = (key === skin && !successShown) ? "block" : "none";
+      if (key === skin) return;
+      panels[key].style.opacity = "0";
+      panels[key].style.display = "none";
     });
-    successScreenEl.style.display = successShown ? "block" : "none";
-    if (lastEntries && !successShown) renderCurrentEntries();
+    if (lastEntries) renderCurrentEntries(); // Inhalt VOR dem Einblenden befuellen
+    const newPanel = panels[skin];
+    newPanel.style.display = "block";
+    newPanel.style.opacity = "0";
+    panelVisible = true;
+    requestAnimationFrame(() => requestAnimationFrame(() => { newPanel.style.opacity = "1"; }));
+  }
+
+  // Wechselt sichtbar von einem Design zum anderen (Crossfade)
+  function switchSkin(skin) {
+    if (currentSkin === skin && panelVisible) { currentSkin = skin; return; }
+    const oldPanel = panelVisible ? panels[currentSkin] : null;
+    if (oldPanel && oldPanel !== panels[skin]) {
+      oldPanel.style.opacity = "0";
+      setTimeout(() => { if (oldPanel.style.opacity === "0") oldPanel.style.display = "none"; }, 260);
+    }
+    fadeInPanel(skin);
   }
 
   function renderCurrentEntries() {
@@ -403,8 +496,12 @@
 
   function showSuccessScreen(finalSeconds) {
     successShown = true;
-    Object.values(panels).forEach(p => p.style.display = "none");
-    successScreenEl.style.display = "block";
+    if (panelVisible) {
+      const oldPanel = panels[currentSkin];
+      oldPanel.style.opacity = "0";
+      setTimeout(() => { oldPanel.style.display = "none"; }, 260);
+      panelVisible = false;
+    }
     document.getElementById("success-time").textContent = formatDuration(finalSeconds);
     const chipsEl = document.getElementById("success-chips");
     chipsEl.innerHTML = "";
@@ -414,12 +511,19 @@
       chip.textContent = e.game;
       chipsEl.appendChild(chip);
     });
+    successScreenEl.style.display = "block";
+    successScreenEl.classList.remove("anim-in");
+    void successScreenEl.offsetWidth; // Reflow erzwingen, damit die Animation neu startet
+    successScreenEl.classList.add("anim-in");
+    successScreenEl.style.opacity = "1";
   }
 
   function hideSuccessScreen() {
     successShown = false;
-    successScreenEl.style.display = "none";
-    showSkin(currentSkin);
+    successScreenEl.style.opacity = "0";
+    successScreenEl.classList.remove("anim-in");
+    setTimeout(() => { successScreenEl.style.display = "none"; }, 260);
+    fadeInPanel(currentSkin);
   }
 
   // ---------- Sheet-Daten (A:D) ----------
@@ -447,6 +551,15 @@
       })).filter(e => e.game);
 
       lastEntries = entries;
+
+      // (2) Pop-Animation: welche Spiele sind seit dem letzten Fetch neu "geschafft"
+      // (Position vor der aktuellen Zeile) geworden?
+      let ai = entries.findIndex(e => e.active);
+      if (ai === -1) ai = entries.findIndex(e => !e.done);
+      if (ai === -1) ai = entries.length;
+      const doneKeysNow = new Set(entries.slice(0, ai).map(entryKey));
+      newlyDoneKeys = new Set([...doneKeysNow].filter(k => !prevDoneKeys.has(k)));
+      prevDoneKeys = doneKeysNow;
 
       const allDone = entries.length > 0 && entries.every(e => e.done);
       if (allDone && !successShown) {
@@ -528,14 +641,15 @@
       }
 
       const newSkin = g1 ? "klemmbrett" : g2 ? "terminal" : g3 ? "timeline" : "klemmbrett";
-      if (newSkin !== currentSkin) showSkin(newSkin);
+      if (newSkin !== currentSkin && !successShown) switchSkin(newSkin);
+      else currentSkin = newSkin; // still merken, falls gerade der Erfolgsscreen offen ist
 
     } catch (err) {
       console.error("Steuerzellen konnten nicht gelesen werden", err);
     }
   }
 
-  showSkin(currentSkin);
+  fadeInPanel(currentSkin);
   fetchSheet();
   setInterval(fetchSheet, REFRESH_MS);
   fetchControls();
