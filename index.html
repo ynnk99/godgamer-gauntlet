@@ -95,6 +95,12 @@
   #panel-klemmbrett .done-list li.pop .check-icon { animation: iconPopKB 480ms ease; }
   @keyframes iconPopKB { 0% { transform: scale(0.3); opacity: 0; } 60% { transform: scale(1.3); } 100% { transform: scale(1); opacity: 1; } }
 
+  #panel-klemmbrett.compact { width: 300px; padding: 16px 18px 14px; }
+  #panel-klemmbrett.compact .title { font-size: 24px; }
+  #panel-klemmbrett.compact .bar-track { margin: 8px 0 12px; }
+  #panel-klemmbrett.compact .timer-box { margin-bottom: 10px; }
+  #panel-klemmbrett.compact .focus-card { margin: 4px 0 10px; }
+
   /* ================= TERMINAL (Leiter) ================= */
 
   #panel-terminal {
@@ -152,6 +158,11 @@
   #panel-terminal .done-list .cond { color: var(--ink-faint); margin-left: 20px; font-size: 10.5px; text-decoration: line-through; }
   #panel-terminal .done-list li.pop { animation: popFlashTerm 700ms ease; }
   @keyframes popFlashTerm { 0% { background: rgba(107,255,158,0.20); } 100% { background: transparent; } }
+
+  #panel-terminal.compact { width: 320px; padding: 14px 16px 12px; }
+  #panel-terminal.compact .bar-track { margin: 8px 0 10px; }
+  #panel-terminal.compact .timer-box { margin-bottom: 10px; }
+  #panel-terminal.compact .focus-card { margin: 4px 0 10px; }
 
   /* ================= TIMELINE (Leiter) ================= */
 
@@ -211,6 +222,12 @@
   @keyframes popFlashTL { 0% { background: rgba(95,211,160,0.18); } 100% { background: transparent; } }
   #panel-timeline .done-list li.pop .dot { animation: iconPopTL 480ms ease; }
   @keyframes iconPopTL { 0% { transform: scale(0.3); opacity: 0; } 60% { transform: scale(1.4); } 100% { transform: scale(1); opacity: 1; } }
+
+  #panel-timeline.compact { width: 300px; padding: 16px 18px 14px; }
+  #panel-timeline.compact .title { font-size: 18px; }
+  #panel-timeline.compact .bar-track { margin: 8px 0 12px; }
+  #panel-timeline.compact .timer-box { margin-bottom: 10px; }
+  #panel-timeline.compact .focus-card { margin: 4px 0 10px; }
 
   /* ================= ERFOLGSSCREEN (fuer alle Designs gleich) ================= */
 
@@ -331,6 +348,7 @@
   let currentSkin = "klemmbrett";
   let lastEntries = null;
   let successShown = false;
+  let compactMode = false; // I1: FALSE = großes Overlay, TRUE = verkleinertes Overlay (nur vorheriges/aktuelles/nächstes Spiel)
 
   function isChecked(raw) {
     if (raw === undefined || raw === null) return false;
@@ -350,7 +368,7 @@
   const LOCK_SVG = `<svg class="lock-icon" viewBox="0 0 16 16" fill="none"><rect x="3.5" y="7" width="9" height="6.5" rx="1.4" stroke="currentColor" stroke-width="1.4"/><path d="M5.5 7V5.2C5.5 3.6 6.7 2.5 8 2.5C9.3 2.5 10.5 3.6 10.5 5.2V7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>`;
   const CHECK_SVG = `<svg viewBox="0 0 16 16" width="10" height="10"><path d="M3.5 8.5L6.5 11.5L12.5 4.5" stroke="#0c1a0e" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
-  function renderLadder(panelEl, entries, activeIndex, opts) {
+  function renderLadder(panelEl, entries, activeIndex, opts, compact) {
     const lockedListEl = panelEl.querySelector(".locked-list");
     const doneListEl = panelEl.querySelector(".done-list");
     const focusCardEl = panelEl.querySelector(".focus-card");
@@ -359,8 +377,15 @@
     const focusCondEl = panelEl.querySelector(".focus-cond");
 
     const active = entries[activeIndex];
-    const doneList = entries.slice(0, activeIndex).reverse();
-    const lockedList = entries.slice(activeIndex + 1).reverse();
+    let doneList = entries.slice(0, activeIndex).reverse();
+    let lockedList = entries.slice(activeIndex + 1).reverse();
+
+    // Verkleinertes Overlay: nur das jeweils direkt vorherige (done) und direkt
+    // nachfolgende (locked) Spiel neben dem aktuellen anzeigen.
+    if (compact) {
+      doneList = doneList.slice(0, 1);
+      lockedList = lockedList.slice(-1);
+    }
 
     focusCardEl.classList.remove("all-done", "flash");
     focusLabelEl.textContent = opts.currentLabel;
@@ -394,28 +419,28 @@
     updateHeaderAndBar(panelEl, activeIndex, entries.length);
   }
 
-  function renderKlemmbrett(entries, activeIndex) {
+  function renderKlemmbrett(entries, activeIndex, compact) {
     renderLadder(panels.klemmbrett, entries, activeIndex, {
       currentLabel: "Aktuell",
       lockedItem: e => `${LOCK_SVG}<span><div class="game">${e.game}</div><div class="cond">${e.cond}</div></span>`,
       doneItem: e => `<span class="check-icon">${CHECK_SVG}</span><span><div class="game">${e.game}</div><div class="cond">${e.cond}</div></span>`,
-    });
+    }, compact);
   }
 
-  function renderTerminal(entries, activeIndex) {
+  function renderTerminal(entries, activeIndex, compact) {
     renderLadder(panels.terminal, entries, activeIndex, {
       currentLabel: "current",
       lockedItem: e => `<div class="game">${e.game}</div><div class="cond">${e.cond}</div>`,
       doneItem: e => `<div class="game">${e.game}</div><div class="cond">${e.cond}</div>`,
-    });
+    }, compact);
   }
 
-  function renderTimeline(entries, activeIndex) {
+  function renderTimeline(entries, activeIndex, compact) {
     renderLadder(panels.timeline, entries, activeIndex, {
       currentLabel: "Aktuell",
       lockedItem: e => `<span class="dot"></span><span><div class="game">${e.game}</div><div class="cond">${e.cond}</div></span>`,
       doneItem: e => `<span class="dot"></span><span><div class="game">${e.game}</div><div class="cond">${e.cond}</div></span>`,
-    });
+    }, compact);
   }
 
   const renderers = { klemmbrett: renderKlemmbrett, terminal: renderTerminal, timeline: renderTimeline };
@@ -458,7 +483,7 @@
     let activeIndex = lastEntries.findIndex(e => e.active);
     if (activeIndex === -1) activeIndex = lastEntries.findIndex(e => !e.done);
     if (activeIndex === -1) activeIndex = 0;
-    renderers[currentSkin](lastEntries, activeIndex);
+    renderers[currentSkin](lastEntries, activeIndex, compactMode);
   }
 
   function showSuccessScreen(finalSeconds) {
@@ -586,7 +611,7 @@
 
   async function fetchControls() {
     if (!SHEET_ID || SHEET_ID === "DEINE_SHEET_ID_HIER") return;
-    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_NAME)}&range=E1:G3`;
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_NAME)}&range=E1:I3`;
     try {
       const res = await fetch(url);
       if (!res.ok) throw new Error("HTTP " + res.status);
@@ -600,6 +625,7 @@
       const g1 = isChecked(cellAt(0, 2));            // G1
       const g2 = isChecked(cellAt(1, 2));            // G2
       const g3 = isChecked(cellAt(2, 2));             // G3
+      const compactOn = isChecked(cellAt(0, 4));      // I1: FALSE = großes Overlay, TRUE = verkleinertes Overlay
 
       if (successShown) {
         setTimerRunning(false);
@@ -610,6 +636,12 @@
       const newSkin = g1 ? "klemmbrett" : g2 ? "terminal" : g3 ? "timeline" : "klemmbrett";
       if (newSkin !== currentSkin && !successShown) switchSkin(newSkin);
       else currentSkin = newSkin; // still merken, falls gerade der Erfolgsscreen offen ist
+
+      if (compactOn !== compactMode) {
+        compactMode = compactOn;
+        Object.values(panels).forEach(p => p.classList.toggle("compact", compactMode));
+        if (!successShown) renderCurrentEntries();
+      }
 
     } catch (err) {
       console.error("Steuerzellen konnten nicht gelesen werden", err);
