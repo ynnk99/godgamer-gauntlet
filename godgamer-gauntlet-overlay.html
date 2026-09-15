@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Game Challenges Overlay — Leiter, Multi-Design</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Sora:wght@600;700;800&family=Manrope:wght@400;500;600;700&family=Big+Shoulders+Display:wght@600;800&display=swap" rel="stylesheet">
+<style>
+
+  /* ============================================================
+     KONFIGURATION — hier anpassen
+     ============================================================
+     1. Sheet freigeben: "Teilen" -> "Jeder mit dem Link" -> Betrachter
+     2. SHEET_ID aus der URL: .../d/DIESE_ID/edit
+     3. Tabellenblatt-Name unten eintragen
+
+     SPALTEN (Zeile 1 = Kopfzeile, wird ignoriert):
+       A: Spiel
+       B: Bedingung
+       C: Erledigt   (Checkbox — pro Spiel, wird fuer den Erfolgsscreen
+                       ausgewertet)
+       D: Aktuell    (Checkbox — genau EIN Haekchen = aktuelles Spiel.
+                       Die LEITER-POSITION ergibt sich aus der
+                       Sheet-Reihenfolge relativ zu dieser Zeile:
+                       alles davor = "geschafft", alles danach =
+                       "gesperrt". Faellt man zurueck, Haken in D
+                       einfach eine Zeile nach oben verschieben.)
+
+     EINZELZELLEN (separat von der Spieltabelle):
+       E1: Timer-Schalter    — Haken rein = 12h-Countdown laeuft
+       G1: Design "Klemmbrett"
+       G2: Design "Terminal"
+       G3: Design "Timeline"
+       -> nur EINE von G1/G2/G3 sollte angehakt sein; Prioritaet bei
+          mehreren: G1 vor G2 vor G3. Keine angehakt -> Klemmbrett.
+
+     ERFOLGSSCREEN:
+       Sobald ALLE Zeilen in Spalte C angehakt sind, stoppt der Timer
+       automatisch und statt der Leiter erscheint ein Erfolgsscreen
+       mit der finalen Zeit.
+     ============================================================ */
+
+  :root{
+    --font-hand: "Caveat", cursive;
+    --font-kb: "Space Grotesk", sans-serif;
+    --font-term: "JetBrains Mono", monospace;
+    --font-tl-display: "Sora", sans-serif;
+    --font-tl-body: "Manrope", sans-serif;
+    --font-succ: "Big Shoulders Display", sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; background: transparent; overflow: hidden; }
+
+  .panel-variant { display: none; }
+
+  /* ================= KLEMMBRETT (Leiter) ================= */
+
+  #panel-klemmbrett {
+    --bg-panel: rgba(250, 248, 242, 0.97);
+    --ink: #23211D;
+    --ink-dim: #8A8478;
+    --ink-faint: #C2BCAC;
+    --line: rgba(35,33,29,0.12);
+    --done: #3F7D4E;
+    --done-bg: rgba(63,125,78,0.07);
+    --focus: #B8541F;
+    --focus-bg: rgba(184,84,31,0.08);
+    width: 420px;
+    background: var(--bg-panel);
+    color: var(--ink);
+    font-family: var(--font-kb);
+    border-radius: 4px;
+    padding: 22px 24px 18px;
+    box-shadow: 0 16px 38px rgba(0,0,0,0.30);
+  }
+  #panel-klemmbrett .head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom: 4px; }
+  #panel-klemmbrett .title { font-family: var(--font-hand); font-weight: 600; font-size: 30px; margin: 0; line-height: 1; }
+  #panel-klemmbrett .fraction { font-weight: 700; font-size: 16px; color: var(--ink-dim); }
+  #panel-klemmbrett .fraction b { color: var(--done); }
+  #panel-klemmbrett .bar-track { height: 4px; background: rgba(35,33,29,0.08); margin: 10px 0 16px; overflow:hidden; }
+  #panel-klemmbrett .bar-fill { height:100%; width:0%; background: var(--done); transition: width 0.6s ease; }
+  #panel-klemmbrett .timer-box { display: flex; align-items: center; justify-content: space-between; background: rgba(35,33,29,0.03); border: 1px dashed var(--ink-faint); padding: 8px 14px; margin-bottom: 14px; }
+  #panel-klemmbrett .timer-left { display:flex; align-items:center; gap: 8px; }
+  #panel-klemmbrett .timer-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-faint); }
+  #panel-klemmbrett .timer-box.running .timer-dot { background: var(--done); }
+  #panel-klemmbrett .timer-label { font-size: 11px; font-weight: 600; color: var(--ink-dim); }
+  #panel-klemmbrett .timer-value { font-weight: 700; font-size: 19px; font-variant-numeric: tabular-nums; }
+  #panel-klemmbrett .timer-box.paused .timer-value { color: var(--ink-dim); }
+
+  #panel-klemmbrett .locked-list, #panel-klemmbrett .done-list { list-style:none; margin:0; padding:0; }
+  #panel-klemmbrett .locked-list li { display:flex; align-items:flex-start; gap:9px; padding:6px 0; opacity: 0.6; }
+  #panel-klemmbrett .lock-icon { flex:0 0 auto; width:13px; height:13px; margin-top:2px; color: var(--ink-faint); }
+  #panel-klemmbrett .locked-list .game { font-weight:600; font-size:12.5px; color: var(--ink-dim); }
+  #panel-klemmbrett .locked-list .cond { font-weight:500; font-size:10.5px; color: var(--ink-faint); margin-top:1px; }
+
+  #panel-klemmbrett .focus-card { border:2px solid var(--focus); background: var(--focus-bg); border-radius: 3px; padding: 14px 16px; margin: 6px 0 12px; }
+  #panel-klemmbrett .focus-label { font-family: var(--font-hand); font-size:18px; font-weight:600; color: var(--focus); margin-bottom:2px; }
+  #panel-klemmbrett .focus-game { font-weight: 700; font-size: 19px; line-height:1.15; margin-bottom:3px; }
+  #panel-klemmbrett .focus-cond { font-size: 12.5px; color: var(--ink-dim); font-weight: 500; }
+  #panel-klemmbrett .focus-card.all-done { border-color: var(--done); background: var(--done-bg); }
+  #panel-klemmbrett .focus-card.all-done .focus-label { color: var(--done); }
+
+  #panel-klemmbrett .done-list li { display:flex; align-items:flex-start; gap:9px; padding:6px 0; border-top: 1px solid var(--line); }
+  #panel-klemmbrett .done-list li:first-child { border-top: none; }
+  #panel-klemmbrett .check-icon { flex:0 0 auto; width:13px; height:13px; margin-top:2px; border-radius:2px; background: var(--done); display:flex; align-items:center; justify-content:center; }
+  #panel-klemmbrett .done-list .game { font-weight:600; font-size:12.5px; color: var(--ink-dim); text-decoration: line-through; text-decoration-color: rgba(138,132,120,0.5); }
+  #panel-klemmbrett .done-list .cond { font-weight:500; font-size:10.5px; color: var(--ink-faint); margin-top:1px; }
+
+  /* ================= TERMINAL (Leiter) ================= */
+
+  #panel-terminal {
+    --bg-panel: rgba(8, 10, 9, 0.92);
+    --ink: #D8F5E3;
+    --ink-dim: #4E7A63;
+    --ink-faint: #33473C;
+    --line: rgba(216,245,227,0.08);
+    --done: #6BFF9E;
+    --done-bg: rgba(107,255,158,0.06);
+    --focus: #FFD166;
+    --focus-bg: rgba(255,209,102,0.06);
+    width: 440px;
+    background: var(--bg-panel);
+    color: var(--ink);
+    font-family: var(--font-term);
+    border: 1px solid var(--ink-faint);
+    border-radius: 8px;
+    padding: 18px 20px 16px;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+  }
+  #panel-terminal .head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom: 4px; }
+  #panel-terminal .title { font-weight: 700; font-size: 15px; color: var(--done); margin: 0; }
+  #panel-terminal .title::before { content: "$ "; color: var(--ink-dim); }
+  #panel-terminal .fraction { font-weight: 600; font-size: 13px; color: var(--ink-dim); }
+  #panel-terminal .fraction b { color: var(--done); }
+  #panel-terminal .bar-track { height: 3px; background: var(--ink-faint); margin: 10px 0 14px; overflow:hidden; }
+  #panel-terminal .bar-fill { height:100%; width:0%; background: var(--done); transition: width 0.6s steps(20); }
+  #panel-terminal .timer-box { display:flex; align-items:center; justify-content:space-between; border: 1px solid var(--ink-faint); padding: 7px 12px; margin-bottom: 14px; font-size: 12px; }
+  #panel-terminal .timer-left { display:flex; align-items:center; gap: 7px; }
+  #panel-terminal .timer-dot { width:6px; height:6px; background: var(--ink-faint); }
+  #panel-terminal .timer-box.running .timer-dot { background: var(--done); }
+  #panel-terminal .timer-label { color: var(--ink-dim); }
+  #panel-terminal .timer-label::before { content: "// "; }
+  #panel-terminal .timer-value { font-weight: 700; font-size: 15px; }
+  #panel-terminal .timer-box.paused .timer-value { color: var(--ink-dim); }
+
+  #panel-terminal .locked-list, #panel-terminal .done-list { list-style:none; margin:0; padding:0; font-size: 12px; }
+  #panel-terminal .locked-list li { padding: 4px 0; opacity: 0.55; }
+  #panel-terminal .locked-list .game::before { content: "[locked] "; color: var(--ink-faint); }
+  #panel-terminal .locked-list .game { color: var(--ink-dim); }
+  #panel-terminal .locked-list .cond { color: var(--ink-faint); margin-left: 14px; font-size: 10.5px; }
+
+  #panel-terminal .focus-card { border: 1px solid var(--focus); background: var(--focus-bg); padding: 12px 14px; margin: 6px 0 12px; }
+  #panel-terminal .focus-label { color: var(--focus); font-size: 11px; margin-bottom: 4px; }
+  #panel-terminal .focus-label::before { content: "> "; }
+  #panel-terminal .focus-game { font-weight: 700; font-size: 15px; color: var(--focus); margin-bottom: 3px; }
+  #panel-terminal .focus-cond { font-size: 11.5px; color: var(--ink-dim); margin-left: 20px; }
+  #panel-terminal .focus-card.all-done { border-color: var(--done); background: var(--done-bg); }
+  #panel-terminal .focus-card.all-done .focus-label { color: var(--done); }
+
+  #panel-terminal .done-list li { padding: 4px 0; }
+  #panel-terminal .done-list .game::before { content: "[x] "; color: var(--done); }
+  #panel-terminal .done-list .game { color: var(--ink-dim); text-decoration: line-through; }
+  #panel-terminal .done-list .cond { color: var(--ink-faint); margin-left: 20px; font-size: 10.5px; text-decoration: line-through; }
+
+  /* ================= TIMELINE (Leiter) ================= */
+
+  #panel-timeline {
+    --bg-panel: rgba(13, 15, 22, 0.90);
+    --ink: #E7E6EF;
+    --ink-dim: #8A88A0;
+    --ink-faint: #45435A;
+    --line: rgba(255,255,255,0.08);
+    --done: #5FD3A0;
+    --done-bg: rgba(95,211,160,0.06);
+    --focus: #6AA8FF;
+    --focus-glow: rgba(106,168,255,0.30);
+    --focus-bg: rgba(106,168,255,0.07);
+    width: 420px;
+    background: var(--bg-panel);
+    color: var(--ink);
+    font-family: var(--font-tl-body);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px;
+    padding: 22px 24px 18px;
+    box-shadow: 0 18px 42px rgba(0,0,0,0.5);
+  }
+  #panel-timeline .head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom: 4px; }
+  #panel-timeline .title { font-family: var(--font-tl-display); font-weight:800; font-size:22px; margin:0; }
+  #panel-timeline .fraction { font-family: var(--font-tl-display); font-weight:700; font-size:16px; color: var(--ink-dim); }
+  #panel-timeline .fraction b { color: var(--done); }
+  #panel-timeline .bar-track { height: 4px; border-radius: 3px; background: rgba(255,255,255,0.07); margin: 12px 0 16px; overflow:hidden; }
+  #panel-timeline .bar-fill { height:100%; width:0%; background: linear-gradient(90deg, var(--done), #9be8c8); border-radius:3px; transition: width 0.6s ease; }
+  #panel-timeline .timer-box { display:flex; align-items:center; justify-content:space-between; background: rgba(255,255,255,0.03); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; }
+  #panel-timeline .timer-left { display:flex; align-items:center; gap:8px; }
+  #panel-timeline .timer-dot { width:8px; height:8px; border-radius:50%; background: var(--ink-faint); }
+  #panel-timeline .timer-box.running .timer-dot { background: var(--done); box-shadow: 0 0 7px rgba(95,211,160,0.5); }
+  #panel-timeline .timer-label { font-size: 11px; font-weight:700; color: var(--ink-dim); letter-spacing: 0.3px; }
+  #panel-timeline .timer-value { font-family: var(--font-tl-display); font-weight:800; font-size:20px; font-variant-numeric: tabular-nums; }
+  #panel-timeline .timer-box.paused .timer-value { color: var(--ink-dim); }
+
+  #panel-timeline .locked-list, #panel-timeline .done-list { list-style:none; margin:0; padding:0; }
+  #panel-timeline .locked-list li { display:flex; align-items:flex-start; gap:10px; padding:6px 0; opacity: 0.5; }
+  #panel-timeline .locked-list .dot { flex:0 0 auto; width:8px; height:8px; margin-top:4px; border-radius:50%; border: 2px solid var(--ink-faint); }
+  #panel-timeline .locked-list .game { font-weight:600; font-size:12.5px; }
+  #panel-timeline .locked-list .cond { font-weight:500; font-size:10.5px; color: var(--ink-dim); margin-top:1px; }
+
+  #panel-timeline .focus-card { border:1px solid var(--focus-glow); background: var(--focus-bg); border-radius: 12px; padding: 14px 16px; margin: 6px 0 14px; box-shadow: 0 0 20px rgba(106,168,255,0.10); }
+  #panel-timeline .focus-label { font-size: 10.5px; font-weight:700; color: var(--focus); letter-spacing:0.3px; margin-bottom: 5px; }
+  #panel-timeline .focus-game { font-family: var(--font-tl-display); font-weight:800; font-size:19px; line-height:1.15; margin-bottom:3px; }
+  #panel-timeline .focus-cond { font-size:12px; color: var(--ink-dim); }
+  #panel-timeline .focus-card.all-done { border-color: var(--done); box-shadow: 0 0 20px rgba(95,211,160,0.12); }
+  #panel-timeline .focus-card.all-done .focus-label { color: var(--done); }
+
+  #panel-timeline .done-list li { display:flex; align-items:flex-start; gap:10px; padding:6px 0; border-top: 1px solid var(--line); }
+  #panel-timeline .done-list li:first-child { border-top: none; }
+  #panel-timeline .done-list .dot { flex:0 0 auto; width:8px; height:8px; margin-top:4px; border-radius:50%; background: var(--done); }
+  #panel-timeline .done-list .game { font-weight:600; font-size:12.5px; color: var(--ink-dim); text-decoration: line-through; text-decoration-color: rgba(138,136,160,0.4); }
+  #panel-timeline .done-list .cond { font-weight:500; font-size:10.5px; color: var(--ink-faint); margin-top:1px; }
+
+  /* ================= ERFOLGSSCREEN (fuer alle Designs gleich) ================= */
+
+  #success-screen {
+    width: 420px;
+    background: rgba(13, 18, 15, 0.94);
+    border: 1px solid rgba(143,191,107,0.30);
+    border-radius: 16px;
+    padding: 30px 26px 24px;
+    box-shadow: 0 20px 46px rgba(0,0,0,0.5), 0 0 40px rgba(143,191,107,0.12);
+    font-family: var(--font-tl-body);
+    color: #EDE9F5;
+    text-align: center;
+  }
+  #success-icon { width: 52px; height: 52px; margin: 0 auto 14px; border-radius: 50%; background: #8FBF6B; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 24px rgba(143,191,107,0.4); }
+  #success-icon svg { width: 26px; height: 26px; }
+  #success-title { font-family: var(--font-succ); font-weight: 800; font-size: 24px; margin: 0 0 6px; }
+  #success-sub { font-size: 13px; color: #9C93AD; margin: 0 0 18px; }
+  #success-time-label { font-size: 11px; font-weight: 700; color: #8FBF6B; letter-spacing: 0.3px; margin-bottom: 2px; }
+  #success-time { font-family: var(--font-succ); font-weight: 800; font-size: 30px; font-variant-numeric: tabular-nums; margin-bottom: 18px; }
+  #success-chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+  .succ-chip { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px 4px 8px; border-radius: 999px; background: rgba(143,191,107,0.10); border: 1px solid rgba(143,191,107,0.25); font-size: 11px; font-weight: 600; color: #8FBF6B; }
+
+  #status { font-size: 11.5px; color: rgba(200,200,210,0.6); margin-top: 10px; font-family: var(--font-tl-body); }
+  #status.hidden { display: none; }
+
+</style>
+</head>
+<body>
+
+  <div id="panel-klemmbrett" class="panel-variant">
+    <div class="head">
+      <p class="title">God Gamer Gauntlet</p>
+      <div class="fraction"><b class="frac-done">0</b>&nbsp;/&nbsp;<span class="frac-total">0</span></div>
+    </div>
+    <div class="bar-track"><div class="bar-fill"></div></div>
+    <div class="timer-box">
+      <div class="timer-left"><div class="timer-dot"></div><div class="timer-label">Verbleibende Zeit</div></div>
+      <div class="timer-value">12:00:00</div>
+    </div>
+    <ul class="locked-list"></ul>
+    <div class="focus-card">
+      <div class="focus-label">Aktuell</div>
+      <div class="focus-game">—</div>
+      <div class="focus-cond"></div>
+    </div>
+    <ul class="done-list"></ul>
+  </div>
+
+  <div id="panel-terminal" class="panel-variant">
+    <div class="head">
+      <p class="title">God Gamer Gauntlet</p>
+      <div class="fraction"><b class="frac-done">0</b>/<span class="frac-total">0</span></div>
+    </div>
+    <div class="bar-track"><div class="bar-fill"></div></div>
+    <div class="timer-box">
+      <div class="timer-left"><div class="timer-dot"></div><div class="timer-label">Verbleibende Zeit</div></div>
+      <div class="timer-value">12:00:00</div>
+    </div>
+    <ul class="locked-list"></ul>
+    <div class="focus-card">
+      <div class="focus-label">current</div>
+      <div class="focus-game">—</div>
+      <div class="focus-cond"></div>
+    </div>
+    <ul class="done-list"></ul>
+  </div>
+
+  <div id="panel-timeline" class="panel-variant">
+    <div class="head">
+      <p class="title">God Gamer Gauntlet</p>
+      <div class="fraction"><b class="frac-done">0</b>&nbsp;/&nbsp;<span class="frac-total">0</span></div>
+    </div>
+    <div class="bar-track"><div class="bar-fill"></div></div>
+    <div class="timer-box">
+      <div class="timer-left"><div class="timer-dot"></div><div class="timer-label">Verbleibende Zeit</div></div>
+      <div class="timer-value">12:00:00</div>
+    </div>
+    <ul class="locked-list"></ul>
+    <div class="focus-card">
+      <div class="focus-label">Aktuell</div>
+      <div class="focus-game">—</div>
+      <div class="focus-cond"></div>
+    </div>
+    <ul class="done-list"></ul>
+  </div>
+
+  <div id="success-screen" style="display:none">
+    <div id="success-icon">
+      <svg viewBox="0 0 16 16" fill="none"><path d="M3 8.5L6.2 11.7L13 4.5" stroke="#12200f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <p id="success-title">Gauntlet geschafft!</p>
+    <p id="success-sub">God Gamer Status acquired</p>
+    <div id="success-time-label">Finale Zeit</div>
+    <div id="success-time">00:00:00</div>
+    <div id="success-chips"></div>
+  </div>
+
+  <div id="status">Lade Daten…</div>
+
+<script>
+  // =========== CONFIG — hier eure Werte eintragen ===========
+  const SHEET_ID   = "11V0nzPSyr-tY5PzNV_eZW5SCOqKHEKIHbIQ5Sy6Ph6o";
+  const SHEET_NAME = "Tabellenblatt1";
+  const REFRESH_MS = 3000;          // Spieltabelle (A:D)
+  const CONTROL_POLL_MS = 4000;      // Timer- und Design-Schalter (E1, G1:G3)
+  const TIMER_DURATION_SECONDS = 12 * 60 * 60;
+  // ============================================================
+
+  const panels = {
+    klemmbrett: document.getElementById("panel-klemmbrett"),
+    terminal:   document.getElementById("panel-terminal"),
+    timeline:   document.getElementById("panel-timeline"),
+  };
+  const successScreenEl = document.getElementById("success-screen");
+  const statusEl = document.getElementById("status");
+
+  let currentSkin = "klemmbrett";
+  let lastEntries = null;
+  let successShown = false;
+
+  function isChecked(raw) {
+    if (raw === undefined || raw === null) return false;
+    const v = String(raw).trim().toLowerCase();
+    return v === "true" || v === "x" || v === "yes" || v === "1" || v === "✓" || v === "erledigt";
+  }
+
+  // ---------- Rendering pro Design (Leiter-Format: gesperrt / aktuell / geschafft) ----------
+
+  function updateHeaderAndBar(panelEl, activeIndex, total) {
+    panelEl.querySelector(".frac-done").textContent = activeIndex;
+    panelEl.querySelector(".frac-total").textContent = total;
+    const pct = Math.round((activeIndex / (total || 1)) * 100);
+    panelEl.querySelector(".bar-fill").style.width = pct + "%";
+  }
+
+  const LOCK_SVG = `<svg class="lock-icon" viewBox="0 0 16 16" fill="none"><rect x="3.5" y="7" width="9" height="6.5" rx="1.4" stroke="currentColor" stroke-width="1.4"/><path d="M5.5 7V5.2C5.5 3.6 6.7 2.5 8 2.5C9.3 2.5 10.5 3.6 10.5 5.2V7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>`;
+  const CHECK_SVG = `<svg viewBox="0 0 16 16" width="10" height="10"><path d="M3.5 8.5L6.5 11.5L12.5 4.5" stroke="#0c1a0e" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+  function renderLadder(panelEl, entries, activeIndex, opts) {
+    const lockedListEl = panelEl.querySelector(".locked-list");
+    const doneListEl = panelEl.querySelector(".done-list");
+    const focusCardEl = panelEl.querySelector(".focus-card");
+    const focusLabelEl = panelEl.querySelector(".focus-label");
+    const focusGameEl = panelEl.querySelector(".focus-game");
+    const focusCondEl = panelEl.querySelector(".focus-cond");
+
+    const active = entries[activeIndex];
+    const doneList = entries.slice(0, activeIndex).reverse();
+    const lockedList = entries.slice(activeIndex + 1).reverse();
+
+    focusCardEl.classList.remove("all-done");
+    focusLabelEl.textContent = opts.currentLabel;
+    focusGameEl.textContent = active ? active.game : "—";
+    focusCondEl.textContent = active ? active.cond : "";
+
+    lockedListEl.innerHTML = "";
+    lockedList.forEach(e => {
+      const li = document.createElement("li");
+      li.innerHTML = opts.lockedItem(e);
+      lockedListEl.appendChild(li);
+    });
+
+    doneListEl.innerHTML = "";
+    doneList.forEach(e => {
+      const li = document.createElement("li");
+      li.innerHTML = opts.doneItem(e);
+      doneListEl.appendChild(li);
+    });
+
+    updateHeaderAndBar(panelEl, activeIndex, entries.length);
+  }
+
+  function renderKlemmbrett(entries, activeIndex) {
+    renderLadder(panels.klemmbrett, entries, activeIndex, {
+      currentLabel: "Aktuell",
+      lockedItem: e => `${LOCK_SVG}<span><div class="game">${e.game}</div><div class="cond">${e.cond}</div></span>`,
+      doneItem: e => `<span class="check-icon">${CHECK_SVG}</span><span><div class="game">${e.game}</div><div class="cond">${e.cond}</div></span>`,
+    });
+  }
+
+  function renderTerminal(entries, activeIndex) {
+    renderLadder(panels.terminal, entries, activeIndex, {
+      currentLabel: "current",
+      lockedItem: e => `<div class="game">${e.game}</div><div class="cond">${e.cond}</div>`,
+      doneItem: e => `<div class="game">${e.game}</div><div class="cond">${e.cond}</div>`,
+    });
+  }
+
+  function renderTimeline(entries, activeIndex) {
+    renderLadder(panels.timeline, entries, activeIndex, {
+      currentLabel: "Aktuell",
+      lockedItem: e => `<span class="dot"></span><span><div class="game">${e.game}</div><div class="cond">${e.cond}</div></span>`,
+      doneItem: e => `<span class="dot"></span><span><div class="game">${e.game}</div><div class="cond">${e.cond}</div></span>`,
+    });
+  }
+
+  const renderers = { klemmbrett: renderKlemmbrett, terminal: renderTerminal, timeline: renderTimeline };
+
+  function showSkin(skin) {
+    currentSkin = skin;
+    Object.keys(panels).forEach(key => {
+      panels[key].style.display = (key === skin && !successShown) ? "block" : "none";
+    });
+    successScreenEl.style.display = successShown ? "block" : "none";
+    if (lastEntries && !successShown) renderCurrentEntries();
+  }
+
+  function renderCurrentEntries() {
+    if (!lastEntries) return;
+    let activeIndex = lastEntries.findIndex(e => e.active);
+    if (activeIndex === -1) activeIndex = lastEntries.findIndex(e => !e.done);
+    if (activeIndex === -1) activeIndex = 0;
+    renderers[currentSkin](lastEntries, activeIndex);
+  }
+
+  function showSuccessScreen(finalSeconds) {
+    successShown = true;
+    Object.values(panels).forEach(p => p.style.display = "none");
+    successScreenEl.style.display = "block";
+    document.getElementById("success-time").textContent = formatDuration(finalSeconds);
+    const chipsEl = document.getElementById("success-chips");
+    chipsEl.innerHTML = "";
+    lastEntries.forEach(e => {
+      const chip = document.createElement("span");
+      chip.className = "succ-chip";
+      chip.textContent = e.game;
+      chipsEl.appendChild(chip);
+    });
+  }
+
+  function hideSuccessScreen() {
+    successShown = false;
+    successScreenEl.style.display = "none";
+    showSkin(currentSkin);
+  }
+
+  // ---------- Sheet-Daten (A:D) ----------
+
+  async function fetchSheet() {
+    if (!SHEET_ID || SHEET_ID === "DEINE_SHEET_ID_HIER") {
+      statusEl.textContent = "Bitte SHEET_ID im Code eintragen.";
+      statusEl.classList.remove("hidden");
+      return;
+    }
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_NAME)}&range=A2:D1000`;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const text = await res.text();
+      const jsonText = text.substring(text.indexOf("{"), text.lastIndexOf("}") + 1);
+      const data = JSON.parse(jsonText);
+      const rows = data.table.rows.map(r => r.c.map(cell => (cell ? (cell.v !== undefined && cell.v !== null ? cell.v : "") : "")));
+
+      const entries = rows.map(row => ({
+        game: (row[0] || "").toString().trim(),
+        cond: (row[1] || "").toString().trim(),
+        done: isChecked(row[2]),
+        active: isChecked(row[3]),
+      })).filter(e => e.game);
+
+      lastEntries = entries;
+
+      const allDone = entries.length > 0 && entries.every(e => e.done);
+      if (allDone && !successShown) {
+        setTimerRunning(false);
+        showSuccessScreen(currentTimerRemaining());
+      } else if (!allDone && successShown) {
+        hideSuccessScreen();
+      } else if (!successShown) {
+        renderCurrentEntries();
+      }
+
+      statusEl.classList.add("hidden");
+    } catch (err) {
+      statusEl.textContent = "Sheet konnte nicht geladen werden — Freigabe prüfen.";
+      statusEl.classList.remove("hidden");
+      console.error(err);
+    }
+  }
+
+  // ---------- Timer (E1) + Design-Schalter (G1:G3) ----------
+
+  let timerRemaining = TIMER_DURATION_SECONDS;
+  let timerRunning = false;
+  let timerRunStartedAt = null;
+
+  function currentTimerRemaining() {
+    if (!timerRunning) return timerRemaining;
+    const elapsed = (Date.now() - timerRunStartedAt) / 1000;
+    return Math.max(0, timerRemaining - elapsed);
+  }
+  function setTimerRunning(shouldRun) {
+    if (shouldRun === timerRunning) return;
+    if (shouldRun) { timerRunStartedAt = Date.now(); timerRunning = true; }
+    else { timerRemaining = currentTimerRemaining(); timerRunning = false; }
+  }
+  function formatDuration(totalSeconds) {
+    const s = Math.max(0, Math.round(totalSeconds));
+    const hh = String(Math.floor(s / 3600)).padStart(2, "0");
+    const mm = String(Math.floor((s % 3600) / 60)).padStart(2, "0");
+    const ss = String(s % 60).padStart(2, "0");
+    return `${hh}:${mm}:${ss}`;
+  }
+  function tickTimerDisplay() {
+    const remaining = currentTimerRemaining();
+    const valueText = formatDuration(remaining);
+    Object.values(panels).forEach(p => {
+      const box = p.querySelector(".timer-box");
+      const val = p.querySelector(".timer-value");
+      if (!box || !val) return;
+      val.textContent = valueText;
+      box.classList.toggle("running", timerRunning && remaining > 0);
+      box.classList.toggle("paused", !timerRunning && remaining > 0);
+    });
+    if (remaining <= 0 && timerRunning) { timerRunning = false; timerRemaining = 0; }
+  }
+  setInterval(tickTimerDisplay, 250);
+
+  async function fetchControls() {
+    if (!SHEET_ID || SHEET_ID === "DEINE_SHEET_ID_HIER") return;
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_NAME)}&range=E1:G3`;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const text = await res.text();
+      const jsonText = text.substring(text.indexOf("{"), text.lastIndexOf("}") + 1);
+      const data = JSON.parse(jsonText);
+      const rows = data.table.rows || [];
+      const cellAt = (r, c) => (rows[r] && rows[r].c[c] ? rows[r].c[c].v : false);
+
+      const timerOn = isChecked(cellAt(0, 0));      // E1
+      const g1 = isChecked(cellAt(0, 2));            // G1
+      const g2 = isChecked(cellAt(1, 2));            // G2
+      const g3 = isChecked(cellAt(2, 2));             // G3
+
+      if (successShown) {
+        setTimerRunning(false);
+      } else {
+        setTimerRunning(timerOn);
+      }
+
+      const newSkin = g1 ? "klemmbrett" : g2 ? "terminal" : g3 ? "timeline" : "klemmbrett";
+      if (newSkin !== currentSkin) showSkin(newSkin);
+
+    } catch (err) {
+      console.error("Steuerzellen konnten nicht gelesen werden", err);
+    }
+  }
+
+  showSkin(currentSkin);
+  fetchSheet();
+  setInterval(fetchSheet, REFRESH_MS);
+  fetchControls();
+  setInterval(fetchControls, CONTROL_POLL_MS);
+</script>
+
+</body>
+</html>
