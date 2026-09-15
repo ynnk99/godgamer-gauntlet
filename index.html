@@ -8,39 +8,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Sora:wght@600;700;800&family=Manrope:wght@400;500;600;700&family=Big+Shoulders+Display:wght@600;800&display=swap" rel="stylesheet">
 <style>
 
-  /* ============================================================
-     KONFIGURATION — hier anpassen
-     ============================================================
-     1. Sheet freigeben: "Teilen" -> "Jeder mit dem Link" -> Betrachter
-     2. SHEET_ID aus der URL: .../d/DIESE_ID/edit
-     3. Tabellenblatt-Name unten eintragen
-
-     SPALTEN (Zeile 1 = Kopfzeile, wird ignoriert):
-       A: Spiel
-       B: Bedingung
-       C: Erledigt   (Checkbox — pro Spiel, wird fuer den Erfolgsscreen
-                       ausgewertet)
-       D: Aktuell    (Checkbox — genau EIN Haekchen = aktuelles Spiel.
-                       Die LEITER-POSITION ergibt sich aus der
-                       Sheet-Reihenfolge relativ zu dieser Zeile:
-                       alles davor = "geschafft", alles danach =
-                       "gesperrt". Faellt man zurueck, Haken in D
-                       einfach eine Zeile nach oben verschieben.)
-
-     EINZELZELLEN (separat von der Spieltabelle):
-       E1: Timer-Schalter    — Haken rein = 12h-Countdown laeuft
-       G1: Design "Klemmbrett"
-       G2: Design "Terminal"
-       G3: Design "Timeline"
-       -> nur EINE von G1/G2/G3 sollte angehakt sein; Prioritaet bei
-          mehreren: G1 vor G2 vor G3. Keine angehakt -> Klemmbrett.
-
-     ERFOLGSSCREEN:
-       Sobald ALLE Zeilen in Spalte C angehakt sind, stoppt der Timer
-       automatisch und statt der Leiter erscheint ein Erfolgsscreen
-       mit der finalen Zeit.
-     ============================================================ */
-
   :root{
     --font-hand: "Caveat", cursive;
     --font-kb: "Space Grotesk", sans-serif;
@@ -209,7 +176,7 @@
   #panel-timeline .focus-card { border:1px solid var(--focus-glow); background: var(--focus-bg); border-radius: 12px; padding: 14px 16px; margin: 6px 0 14px; box-shadow: 0 0 20px rgba(106,168,255,0.10); }
   #panel-timeline .focus-label { font-size: 10.5px; font-weight:700; color: var(--focus); letter-spacing:0.3px; margin-bottom: 5px; }
   #panel-timeline .focus-game { font-family: var(--font-tl-display); font-weight:800; font-size:19px; line-height:1.15; margin-bottom:3px; }
-  #panel-timeline .focus-cond { font-size:12px; color: var(--ink-dim); }
+  #panel-timeline .focus-cond { font-size:12px; color: #F5D061; }
   #panel-timeline .focus-card.all-done { border-color: var(--done); box-shadow: 0 0 20px rgba(95,211,160,0.12); }
   #panel-timeline .focus-card.all-done .focus-label { color: var(--done); }
 
