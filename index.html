@@ -2,44 +2,11 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Game Challenges Overlay — Leiter, Multi-Design</title>
+<title>PietSmiet God Gamer Gauntlet</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Sora:wght@600;700;800&family=Manrope:wght@400;500;600;700&family=Big+Shoulders+Display:wght@600;800&display=swap" rel="stylesheet">
 <style>
-
-  /* ============================================================
-     KONFIGURATION — hier anpassen
-     ============================================================
-     1. Sheet freigeben: "Teilen" -> "Jeder mit dem Link" -> Betrachter
-     2. SHEET_ID aus der URL: .../d/DIESE_ID/edit
-     3. Tabellenblatt-Name unten eintragen
-
-     SPALTEN (Zeile 1 = Kopfzeile, wird ignoriert):
-       A: Spiel
-       B: Bedingung
-       C: Erledigt   (Checkbox — pro Spiel, wird fuer den Erfolgsscreen
-                       ausgewertet)
-       D: Aktuell    (Checkbox — genau EIN Haekchen = aktuelles Spiel.
-                       Die LEITER-POSITION ergibt sich aus der
-                       Sheet-Reihenfolge relativ zu dieser Zeile:
-                       alles davor = "geschafft", alles danach =
-                       "gesperrt". Faellt man zurueck, Haken in D
-                       einfach eine Zeile nach oben verschieben.)
-
-     EINZELZELLEN (separat von der Spieltabelle):
-       E1: Timer-Schalter    — Haken rein = 12h-Countdown laeuft
-       G1: Design "Klemmbrett"
-       G2: Design "Terminal"
-       G3: Design "Timeline"
-       -> nur EINE von G1/G2/G3 sollte angehakt sein; Prioritaet bei
-          mehreren: G1 vor G2 vor G3. Keine angehakt -> Klemmbrett.
-
-     ERFOLGSSCREEN:
-       Sobald ALLE Zeilen in Spalte C angehakt sind, stoppt der Timer
-       automatisch und statt der Leiter erscheint ein Erfolgsscreen
-       mit der finalen Zeit.
-     ============================================================ */
 
   :root{
     --font-hand: "Caveat", cursive;
@@ -276,7 +243,7 @@
 
   <div id="panel-klemmbrett" class="panel-variant">
     <div class="head">
-      <p class="title">Challenge-Leiter</p>
+      <p class="title">God Gamer Gauntlet</p>
       <div class="fraction"><b class="frac-done">0</b>&nbsp;/&nbsp;<span class="frac-total">0</span></div>
     </div>
     <div class="bar-track"><div class="bar-fill"></div></div>
@@ -295,17 +262,17 @@
 
   <div id="panel-terminal" class="panel-variant">
     <div class="head">
-      <p class="title">challenge_log</p>
+      <p class="title">God Gamer Gauntlet</p>
       <div class="fraction"><b class="frac-done">0</b>/<span class="frac-total">0</span></div>
     </div>
     <div class="bar-track"><div class="bar-fill"></div></div>
     <div class="timer-box">
-      <div class="timer-left"><div class="timer-dot"></div><div class="timer-label">time_left</div></div>
+      <div class="timer-left"><div class="timer-dot"></div><div class="timer-label">Zeit übrig</div></div>
       <div class="timer-value">12:00:00</div>
     </div>
     <ul class="locked-list"></ul>
     <div class="focus-card">
-      <div class="focus-label">current</div>
+      <div class="focus-label">Aktuell</div>
       <div class="focus-game">—</div>
       <div class="focus-cond"></div>
     </div>
@@ -314,7 +281,7 @@
 
   <div id="panel-timeline" class="panel-variant">
     <div class="head">
-      <p class="title">Fortschritt</p>
+      <p class="title">God Gamer Gauntlet</p>
       <div class="fraction"><b class="frac-done">0</b>&nbsp;/&nbsp;<span class="frac-total">0</span></div>
     </div>
     <div class="bar-track"><div class="bar-fill"></div></div>
@@ -335,8 +302,8 @@
     <div id="success-icon">
       <svg viewBox="0 0 16 16" fill="none"><path d="M3 8.5L6.2 11.7L13 4.5" stroke="#12200f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
-    <p id="success-title">Alle Challenges geschafft!</p>
-    <p id="success-sub">Jedes Spiel auf der Liste ist abgehakt.</p>
+    <p id="success-title">Gauntlet geschafft!</p>
+    <p id="success-sub">God Gamer Status acquired</p>
     <div id="success-time-label">Finale Zeit</div>
     <div id="success-time">00:00:00</div>
     <div id="success-chips"></div>
@@ -346,9 +313,9 @@
 
 <script>
   // =========== CONFIG — hier eure Werte eintragen ===========
-  const SHEET_ID   = "DEINE_SHEET_ID_HIER";
+  const SHEET_ID   = "11V0nzPSyr-tY5PzNV_eZW5SCOqKHEKIHbIQ5Sy6Ph6o";
   const SHEET_NAME = "Tabellenblatt1";
-  const REFRESH_MS = 10000;          // Spieltabelle (A:D)
+  const REFRESH_MS = 3000;          // Spieltabelle (A:D)
   const CONTROL_POLL_MS = 4000;      // Timer- und Design-Schalter (E1, G1:G3)
   const TIMER_DURATION_SECONDS = 12 * 60 * 60;
   // ============================================================
