@@ -334,7 +334,12 @@
   const SHEET_NAME = "Tabellenblatt1";
   const REFRESH_MS = 3000;          // Spieltabelle (A:D)
   const CONTROL_POLL_MS = 4000;      // Timer- und Design-Schalter (E1, G1:G3)
-  const TIMER_DURATION_SECONDS = 12 * 60 * 60;
+
+  // Der Timer läuft nicht mehr über eine feste Dauer, sondern zählt bis zu
+  // einem festen Zeitpunkt herunter: 17.09.2026, 00:00 Uhr deutsche Zeit.
+  // Im September gilt in Deutschland noch die Sommerzeit (MESZ, UTC+2),
+  // daher der Offset "+02:00" — das entspricht exakt Mitternacht Ortszeit.
+  const TARGET_END_MS = new Date("2026-09-17T00:00:00+02:00").getTime();
   // ============================================================
 
   const panels = {
@@ -555,7 +560,6 @@
 
       const allDone = entries.length > 0 && entries.every(e => e.done);
       if (allDone && !successShown) {
-        setTimerRunning(false);
         showSuccessScreen(currentTimerRemaining());
       } else if (!allDone && successShown) {
         hideSuccessScreen();
@@ -571,21 +575,15 @@
     }
   }
 
-  // ---------- Timer (E1) + Design-Schalter (G1:G3) ----------
+  // ---------- Timer (zählt bis TARGET_END_MS) + Design-Schalter (G1:G3) ----------
 
-  let timerRemaining = TIMER_DURATION_SECONDS;
-  let timerRunning = false;
-  let timerRunStartedAt = null;
+  let timerRunning = false; // steuert nur noch die optische "läuft/pausiert"-Anzeige (E1)
 
   function currentTimerRemaining() {
-    if (!timerRunning) return timerRemaining;
-    const elapsed = (Date.now() - timerRunStartedAt) / 1000;
-    return Math.max(0, timerRemaining - elapsed);
+    return Math.max(0, (TARGET_END_MS - Date.now()) / 1000);
   }
   function setTimerRunning(shouldRun) {
-    if (shouldRun === timerRunning) return;
-    if (shouldRun) { timerRunStartedAt = Date.now(); timerRunning = true; }
-    else { timerRemaining = currentTimerRemaining(); timerRunning = false; }
+    timerRunning = shouldRun;
   }
   function formatDuration(totalSeconds) {
     const s = Math.max(0, Math.round(totalSeconds));
@@ -605,7 +603,6 @@
       box.classList.toggle("running", timerRunning && remaining > 0);
       box.classList.toggle("paused", !timerRunning && remaining > 0);
     });
-    if (remaining <= 0 && timerRunning) { timerRunning = false; timerRemaining = 0; }
   }
   setInterval(tickTimerDisplay, 250);
 
